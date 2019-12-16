@@ -5,7 +5,10 @@ import (
 	"log"
 	"net/http"
 	"html/template"
+	"strings"
 	"regexp"
+	"os"
+	"encoding/csv"
 )
 // type Page struct {
 // 	Title string
@@ -17,23 +20,44 @@ import (
 // }
 
 var validPath = regexp.MustCompile("^/([-a-zA-z0-9]+)$")
-var urls = make(map[string] string)
+
 func expandShortPath(p string) string {
-	// TODO: Make sure that check is case-insensitive. 
-	fp, ok := urls[p]
-	if !ok {
-		fmt.Printf("The short path '%v' cannot be expanded\n", p)
-		return ""
+	f, err := os.OpenFile("paths.csv", os.O_RDONLY, 0644)
+	defer f.Close()
+	if err != nil {
+		fmt.Println("There was an error opening paths.csv", err)
 	}
-	return fp
+	r := csv.NewReader(f)
+	for {
+		rec, err := r.Read() 
+		if err != nil {
+			fmt.Println("No path found", err)
+			return ""
+		}
+		if rec[0] == strings.ToLower(p) {
+			return rec[1]
+		}
+	}
 }
 func createShortPath(fp string, sp string) {
-	if _, ok := urls[sp]; ok {
+	if expandShortPath(sp) != "" {
 		fmt.Println("Shortpath already exists")
 		return
 	}
+	f, err := os.OpenFile("paths.csv", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	defer f.Close()
+	if err != nil {
+		fmt.Println("There was an error opening the file", err)
+		return
+	}
+	w := csv.NewWriter(f)
+	err = w.Write([]string{strings.ToLower(sp), fp})
+	if err != nil {
+		fmt.Println("Error writing to file", err)
+		return
+	}
+	w.Flush()
 	fmt.Printf("CREATED: %v will reroute to %v\n", sp, fp)
-	urls[sp] = fp
 }
 // RouteHandler Expects shortened URL, and looks for a full URL to reroute to.
 func RouteHandler(w http.ResponseWriter, r *http.Request) {
