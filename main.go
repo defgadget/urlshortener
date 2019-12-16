@@ -10,6 +10,11 @@ import (
 	"os"
 	"encoding/csv"
 )
+// TODO: Improve UI of website
+// TODO: Automate shortening of long url. ?? How to do it?
+// TODO: Make code more modular - Move Modal into it's own package
+// TODO: Upgrade CSV to a more robust DB
+
 // type Page struct {
 // 	Title string
 // 	Body  []byte
